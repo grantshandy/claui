@@ -1,135 +1,152 @@
-use std::{io::Read, thread};
+#![feature(thread_is_running)]
+
+use std::{
+    collections::HashMap,
+    env,
+    io::Read,
+    sync::Arc,
+    thread::{self, JoinHandle},
+};
+
+mod misc;
+mod ui;
 
 use clap::{ArgMatches, Command};
 use crossbeam_channel::{Receiver, Sender};
-use eframe::{
-    egui::{self, CentralPanel, Context, RichText, ScrollArea, TextStyle},
-    epi,
-};
-use shh::ShhStdout;
+use misc::{AppInfo, ArgState};
+use shh::{ShhStderr, ShhStdout};
 
-pub fn run(app: Command<'static>, func: Box<dyn Fn(&ArgMatches) + Send + Sync>) -> ! {
-    let func = Box::new(func);
+pub fn run<F: Fn(&ArgMatches) + Send + Sync + 'static>(app: Command<'static>, func: F) -> ! {
     println!("Initializing clui");
 
     eframe::run_native(
-        Box::new(Clui::new(app, func)),
+        Box::new(Clui::new(app, Arc::new(func))),
         eframe::NativeOptions::default(),
     )
 }
 
-type SharedFunction = Box<dyn Fn(&ArgMatches) + Send + Sync + 'static>;
+type SharedFunction = Arc<dyn Fn(&ArgMatches) + Send + Sync + 'static>;
 
 struct Clui {
-    name: String,
-    version: Option<String>,
-    about: Option<String>,
-    shh: ShhStdout,
+    app: Box<Command<'static>>,
+    app_info: AppInfo,
+    shh: (ShhStdout, ShhStderr),
     buffer: String,
     func: SharedFunction,
-    app: Box<Command<'static>>,
+    func_handle: Option<Arc<JoinHandle<()>>>,
+    is_running: bool,
+    args: Vec<ArgState>,
+    ui_arg_state: HashMap<String, (bool, String)>,
 }
 
 impl Clui {
     pub fn new(app: Command<'static>, func: SharedFunction) -> Self {
         let app = Box::new(app);
-        let shh = shh::stdout().unwrap();
-        let buffer = String::new();
+        let app_info = AppInfo::new(&app);
 
-        let name = app.get_name().to_string();
-        let version = match app.get_version() {
-            Some(version) => Some(version.to_string()),
-            None => None,
-        };
-        let about = match app.get_about() {
-            Some(about) => Some(about.to_string()),
-            None => None,
-        };
+        let mut args = Vec::new();
+        for arg in app.get_arguments() {
+            match arg.get_id() {
+                "version" => (),
+                "help" => (),
+                _ => args.push(ArgState::new(arg)),
+            }
+        }
+
+        let mut ui_arg_state = HashMap::new();
+        for arg in &args {
+            ui_arg_state.insert(arg.name.clone(), (false, String::new()));
+        }
 
         Self {
-            name,
-            version,
-            about,
-            shh,
-            buffer,
-            func,
             app,
+            app_info,
+            shh: (shh::stdout().unwrap(), shh::stderr().unwrap()),
+            buffer: String::new(),
+            func,
+            func_handle: None,
+            is_running: false,
+            args,
+            ui_arg_state,
         }
     }
 
     fn update_buffer(&mut self) {
-        self.shh.read_to_string(&mut self.buffer).unwrap();
+        self.shh.0.read_to_string(&mut self.buffer).unwrap();
+        self.shh.1.read_to_string(&mut self.buffer).unwrap();
     }
 
     fn run(&mut self) {
         self.buffer.clear();
 
-        let (sender, reciever): (
+        let (sender, receiver): (
             Sender<(SharedFunction, ArgMatches)>,
             Receiver<(SharedFunction, ArgMatches)>,
         ) = crossbeam_channel::unbounded();
-        let matches = self.app.clone().get_matches();
 
-        let handle = thread::spawn(move || {
-            let (func, matches) = reciever.recv().unwrap();
-
-            func(&matches);
-        });
-
-        sender.send((self.func, matches));
-        handle.join();
-    }
-}
-
-impl epi::App for Clui {
-    fn name(&self) -> &str {
-        self.name.as_str()
-    }
-
-    fn update(&mut self, ctx: &Context, frame: &epi::Frame) {
-        self.update_buffer();
-
-        CentralPanel::default().show(ctx, |ui| {
-            // title and description
-            ui.horizontal(|ui| {
-                ui.heading(&self.name);
-                if let Some(version) = &self.version {
-                    ui.label(RichText::new(version));
-                }
-            });
-            if let Some(about) = &self.about {
-                ui.label(about);
+        let matches = match self.app.clone().try_get_matches_from(self.get_arg_output()) {
+            Ok(res) => res,
+            Err(err) => {
+                eprintln!("{}", err);
+                return;
             }
-            ui.add_space(4.5);
+        };
 
-            ui.horizontal(|ui| {
-                // Run button
-                if ui.button("Run").clicked() {
-                    self.run();
+        let func_handle = thread::Builder::new()
+            .name(String::from("clui child"))
+            .spawn(move || {
+                let (func, matches) = receiver.recv().unwrap();
+
+                func(&matches);
+            })
+            .unwrap();
+
+        self.func_handle = Some(Arc::new(func_handle));
+        self.is_running = true;
+
+        sender.send((Arc::clone(&self.func), matches)).unwrap();
+    }
+
+    fn get_arg_output(&mut self) -> Vec<String> {
+        let mut res = Vec::new();
+
+        let prog_name = env::current_exe()
+            .unwrap()
+            .file_name()
+            .unwrap()
+            .to_str()
+            .unwrap()
+            .to_owned();
+        res.push(prog_name);
+
+        for arg in self.args.iter() {
+            if arg.takes_value {
+                let value = self
+                    .ui_arg_state
+                    .get(&arg.name.clone())
+                    .unwrap()
+                    .1
+                    .to_owned();
+                if value != "" {
+                    res.push(format!("--{}", arg.name));
+                    res.push(value);
                 }
-
-                if ui.button("Show State").clicked() {
-                    self.buffer.clear();
-
-                    println!("{:#?}", self.app);
+            } else {
+                if self.ui_arg_state.get(&arg.name.clone()).unwrap().0 {
+                    res.push(format!("--{}", arg.name));
                 }
-            });
+            }
+        }
 
-            ui.separator();
+        res
+    }
 
-            // The results for running the text
-            ScrollArea::vertical().show(ui, |ui| {
-                ui.add_sized(
-                    ui.available_size(),
-                    egui::TextEdit::multiline(&mut self.buffer)
-                        .interactive(false)
-                        .font(TextStyle::Monospace),
-                );
-            });
-        });
-
-        // Resize the native window to be just the size we need it to be:
-        frame.set_window_size(ctx.used_size());
-        frame.request_repaint();
+    fn update_thread_state(&mut self) {
+        if let Some(func_handle) = &self.func_handle {
+            if !func_handle.is_running() {
+                self.func_handle = None;
+                self.is_running = false;
+            }
+        }
     }
 }

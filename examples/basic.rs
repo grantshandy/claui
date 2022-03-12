@@ -1,14 +1,9 @@
-use clap::{arg, Command};
+use clap::Command;
 
 fn main() {
-    let app = Command::new("Example Program")
-        .author("Me, <me@mail.com>")
-        .version("1.2.3")
-        .about("This is an example program to demonstrate clui")
-        .arg(arg!(-t --test "used for testing arguments").takes_value(true))
-        .arg(arg!(-s --secondtest "second arg used for testing arguments"));
+    let app = Command::new("Basic");
 
     clui::run(app, |matches| {
-        println!("Example Program...\n{:#?}", matches);
+        println!("{:#?}", matches);
     });
 }
