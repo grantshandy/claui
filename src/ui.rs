@@ -1,9 +1,12 @@
 use eframe::{
-    egui::{Button, CentralPanel, Checkbox, Context, RichText, ScrollArea, TextEdit, Ui, CollapsingHeader},
+    egui::{
+        style::Margin, Button, CentralPanel, Checkbox, CollapsingHeader, Context, Frame, Grid,
+        RichText, ScrollArea, Style, TextEdit, Ui,
+    },
     epi,
 };
 
-use crate::Clui;
+use crate::{misc::capitalize, Clui};
 
 impl epi::App for Clui {
     fn name(&self) -> &str {
@@ -14,16 +17,22 @@ impl epi::App for Clui {
         self.update_buffer();
         self.update_thread_state();
 
-        CentralPanel::default().show(ctx, |ui| {
-            self.add_title(ui);
-            self.add_options(ui);
-            self.add_actions_bar(ui);
-            self.add_results(ui);
-        });
+        CentralPanel::default()
+            .frame(Frame::window(&Style::default()).margin(Margin::same(15.0)))
+            .show(ctx, |ui| {
+                self.add_title(ui);
+                self.add_options(ui);
+                self.add_actions_bar(ui);
+                self.add_results(ui);
+            });
 
         // Resize the native window to be just the size we need it to be:
         frame.set_window_size(ctx.used_size());
-        frame.request_repaint();
+
+        // We do constant repainting while its running in order to show the output at correct timing.
+        if self.is_running {
+            frame.request_repaint();
+        }
     }
 }
 
@@ -32,32 +41,44 @@ impl Clui {
         if self.args.len() > 0 {
             ui.separator();
 
-            for arg in self.args.iter() {
-                ui.columns(3, |columns| {
-                    columns[0].label(&arg.name);
+            Grid::new("options")
+                .num_columns(3)
+                .min_col_width(ui.available_width() / 4.0)
+                .striped(true)
+                .show(ui, |ui| {
+                    ui.label("Key");
+                    ui.label("Value");
+                    ui.label("Description");
+                    ui.end_row();
 
-                    if arg.takes_value {
-                        columns[1].add_enabled(
-                            !self.is_running,
-                            TextEdit::singleline(
-                                &mut self.ui_arg_state.get_mut(&arg.name.clone()).unwrap().1,
-                            ).hint_text(arg.default_value.as_ref().unwrap_or(&"".to_string())),
-                        );
-                    } else {
-                        columns[1].add_enabled(
-                            !self.is_running,
-                            Checkbox::new(
-                                &mut self.ui_arg_state.get_mut(&arg.name.clone()).unwrap().0,
-                                "",
-                            ),
-                        );
-                    }
+                    for arg in self.args.iter() {
+                        ui.label(capitalize(&arg.name));
 
-                    if let Some(desc) = &arg.desc {
-                        columns[2].label(desc);
+                        if arg.takes_value {
+                            ui.add_enabled(
+                                !self.is_running,
+                                TextEdit::singleline(
+                                    &mut self.ui_arg_state.get_mut(&arg.name.clone()).unwrap().1,
+                                )
+                                .hint_text(arg.default_value.as_ref().unwrap_or(&"".to_string())),
+                            );
+                        } else {
+                            ui.add_enabled(
+                                !self.is_running,
+                                Checkbox::new(
+                                    &mut self.ui_arg_state.get_mut(&arg.name.clone()).unwrap().0,
+                                    "",
+                                ),
+                            );
+                        }
+
+                        if let Some(desc) = &arg.desc {
+                            ui.label(desc);
+                        }
+
+                        ui.end_row();
                     }
                 });
-            }
 
             ui.separator();
         }
@@ -75,15 +96,24 @@ impl Clui {
             ui.label(about);
         }
 
-        if let Some(long_about) = &self.app_info.long_about {
-            CollapsingHeader::new("Description").show(ui, |ui| {
-                ui.add_space(2.0);
-                ui.label(long_about);
-                if let Some(author) = &self.app_info.author {
+        if self.app_info.long_about.is_some()
+            || self.app_info.author.is_some()
+            || self.app_info.ver.is_some()
+        {
+            CollapsingHeader::new("Info").show(ui, |ui| {
+                if let Some(long_about) = &self.app_info.long_about {
+                    ui.label(format!("Description: {}", long_about));
                     ui.add_space(3.0);
-                    ui.label(format!("Author: {}", author));  
                 }
-                ui.add_space(2.0);
+
+                if let Some(author) = &self.app_info.author {
+                    ui.label(format!("Author: {}", author));
+                    ui.add_space(3.0);
+                }
+
+                if let Some(version) = &self.app_info.ver {
+                    ui.label(format!("Version: {}", version));
+                }
             });
         }
 

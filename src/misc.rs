@@ -44,7 +44,6 @@ pub struct ArgState {
     pub name: String,
     pub desc: Option<String>,
     pub default_value: Option<String>,
-    pub required: bool,
     pub takes_value: bool,
 }
 
@@ -59,8 +58,15 @@ impl ArgState {
             name: arg.get_id().to_string(),
             desc: arg.get_help().map(|h| h.to_string()),
             default_value,
-            required: arg.is_required_set(),
             takes_value: arg.is_takes_value_set(),
         }
+    }
+}
+
+pub fn capitalize(s: &str) -> String {
+    let mut c = s.chars();
+    match c.next() {
+        None => String::new(),
+        Some(f) => f.to_uppercase().to_string() + c.as_str(),
     }
 }

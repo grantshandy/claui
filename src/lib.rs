@@ -1,10 +1,14 @@
 #![feature(thread_is_running)]
+#![doc = include_str!("../README.md")]
 
 use std::{
     collections::HashMap,
     env,
     io::Read,
-    sync::Arc,
+    sync::{
+        mpsc::{self, Receiver, Sender},
+        Arc,
+    },
     thread::{self, JoinHandle},
 };
 
@@ -12,13 +16,11 @@ mod misc;
 mod ui;
 
 use clap::{ArgMatches, Command};
-use crossbeam_channel::{Receiver, Sender};
 use misc::{AppInfo, ArgState};
 use shh::{ShhStderr, ShhStdout};
 
+/// Run a clap `Command` as a GUI
 pub fn run<F: Fn(&ArgMatches) + Send + Sync + 'static>(app: Command<'static>, func: F) -> ! {
-    println!("Initializing clui");
-
     eframe::run_native(
         Box::new(Clui::new(app, Arc::new(func))),
         eframe::NativeOptions::default(),
@@ -82,7 +84,7 @@ impl Clui {
         let (sender, receiver): (
             Sender<(SharedFunction, ArgMatches)>,
             Receiver<(SharedFunction, ArgMatches)>,
-        ) = crossbeam_channel::unbounded();
+        ) = mpsc::channel();
 
         let matches = match self.app.clone().try_get_matches_from(self.get_arg_output()) {
             Ok(res) => res,
