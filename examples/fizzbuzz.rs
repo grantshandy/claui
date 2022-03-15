@@ -9,7 +9,7 @@ use clap::{ArgMatches, CommandFactory, Parser};
     name = "Fizz Buzz",
     author = "Grant Handy <grantshandy@gmail.com>",
     version = "1.2.3",
-    about = "An example implementation of FizzBuzz for clui",
+    about = "An example implementation of FizzBuzz for claui",
     long_about = r#"Fizz buzz is a group word game for children to teach them about division. Players take turns to count incrementally, replacing any number divisible by three with the word "fizz", and any number divisible by five with the word "buzz". This program plays the game on its own, printing out every number and playing along to the rules."#
 )]
 struct Args {
@@ -43,7 +43,7 @@ struct Args {
 fn main() {
     let app = Args::command();
 
-    clui::run(app, run);
+    claui::run(app, run);
 }
 
 fn run(matches: &ArgMatches) {

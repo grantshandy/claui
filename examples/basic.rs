@@ -1,9 +1,11 @@
+#![windows_subsystem = "windows"]
+
 use clap::Command;
 
 fn main() {
     let app = Command::new("Basic");
 
-    clui::run(app, |_| {
+    claui::run(app, |_| {
         println!("Hello, World!");
     });
 }

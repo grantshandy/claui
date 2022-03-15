@@ -1,5 +1,65 @@
+//! # claui
+//! *Command Line Argument (to graphical) User Interface*
+//!
+//! A GUI generator for [`clap`](https://github.com/clap-rs/clap) using [`egui`](https://github.com/emilk/egui).
+//!
+//! ## Builder Example
+//! ```rust
+//! use clap::{arg, Command};
+//!
+//! fn main() {
+//!     let app = Command::new("Builder Greeter")
+//!         .author("Grant Handy <grantshandy@gmail.com>")
+//!         .version("1.2.3")
+//!         .about("A builder example for claui")
+//!         .arg(arg!(--name "Your name").default_value("Joe"))
+//!         .arg(arg!(--goodbye "Say goodbye"));
+//!
+//!     claui::run(app, |matches| {
+//!         println!("Hello, {}!", matches.value_of("name").unwrap());
+//!
+//!         if matches.is_present("goodbye") {
+//!             println!("Goodbye!");
+//!         }
+//!     });
+//! }
+//! ```
+//!
+//! ## Derive Example
+//! ```rust
+//! use clap::{CommandFactory, Parser};
+//!
+//! #[derive(Parser, Debug)]
+//! #[clap(
+//!     name = "Derive Greeter",
+//!     author = "Grant Handy <grantshandy@gmail.com>",
+//!     version = "1.2.3",
+//!     about = "A derive example for claui"
+//! )]
+//! struct Args {
+//!     #[clap(long, default_value = "Joe", help = "Your name")]
+//!     name: String,
+//!     #[clap(long, help = "Say goodbye")]
+//!     goodbye: bool,
+//! }
+//!
+//! fn main() {
+//!     let app = Args::command();
+//!
+//!     claui::run(app, |matches| {
+//!         println!("Hello, {}!", matches.value_of("name").unwrap());
+//!
+//!         if matches.is_present("goodbye") {
+//!             println!("Goodbye!");
+//!         }
+//!     });
+//! }
+//! ```
+//!
+//! ## Comparison with [`klask`](https://github.com/MichalGniadek/klask)
+//! Klask is another GUI generator for [`clap`](https://github.com/clap-rs/clap) that uses [`egui`](https://github.com/emilk/egui), but claui and klask work in different ways. Klask runs your code by running itself as a child with an environment variable to ignore its GUI, then capturing the child stdout. Claui only runs one process; it spawns your code in another thread and then reroutes all of your stdout into a buffer on each frame through [`shh`](https://github.com/kurtlawrence/shh).
+
 #![feature(thread_is_running)]
-#![doc = include_str!("../README.md")]
 
 use std::{
     collections::HashMap,
@@ -19,17 +79,17 @@ use clap::{ArgMatches, Command};
 use misc::{AppInfo, ArgState};
 use shh::{ShhStderr, ShhStdout};
 
-/// Run a clap `Command` as a GUI
+/// Run a clap [`Command`](egui::Command) as a GUI
 pub fn run<F: Fn(&ArgMatches) + Send + Sync + 'static>(app: Command<'static>, func: F) -> ! {
     eframe::run_native(
-        Box::new(Clui::new(app, Arc::new(func))),
+        Box::new(Claui::new(app, Arc::new(func))),
         eframe::NativeOptions::default(),
     )
 }
 
 type SharedFunction = Arc<dyn Fn(&ArgMatches) + Send + Sync + 'static>;
 
-struct Clui {
+struct Claui {
     app: Box<Command<'static>>,
     app_info: AppInfo,
     shh: (ShhStdout, ShhStderr),
@@ -41,7 +101,7 @@ struct Clui {
     ui_arg_state: HashMap<String, (bool, String)>,
 }
 
-impl Clui {
+impl Claui {
     pub fn new(app: Command<'static>, func: SharedFunction) -> Self {
         let app = Box::new(app);
         let app_info = AppInfo::new(&app);
@@ -95,7 +155,7 @@ impl Clui {
         };
 
         let func_handle = thread::Builder::new()
-            .name(String::from("clui child"))
+            .name(String::from("claui child"))
             .spawn(move || {
                 let (func, matches) = receiver.recv().unwrap();
 
@@ -112,14 +172,14 @@ impl Clui {
     fn get_arg_output(&mut self) -> Vec<String> {
         let mut res = Vec::new();
 
-        let prog_name = env::current_exe()
-            .unwrap()
-            .file_name()
-            .unwrap()
-            .to_str()
-            .unwrap()
-            .to_owned();
-        res.push(prog_name);
+        res.push(
+            env::current_exe()
+                .unwrap()
+                .as_path()
+                .to_str()
+                .unwrap()
+                .to_string(),
+        );
 
         for arg in self.args.iter() {
             if arg.takes_value {
@@ -145,7 +205,7 @@ impl Clui {
 
     fn update_thread_state(&mut self) {
         if let Some(func_handle) = &self.func_handle {
-            if !func_handle.is_running() {
+            if func_handle.is_finished() {
                 self.func_handle = None;
                 self.is_running = false;
             }

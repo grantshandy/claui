@@ -1,5 +1,9 @@
-# clui
-A GUI generator for [`clap-rs`](https://github.com/clap-rs/clap) using [`egui`](https://github.com/emilk/egui).
+# claui
+*Command Line Argument (to graphical) User Interface*
+
+A GUI generator for [`clap`](https://github.com/clap-rs/clap) using [`egui`](https://github.com/emilk/egui).
+
+![fizzbuzz screenshot](./screenshots/fizzbuzz.png)
 
 ## Builder Example
 ```rust
@@ -9,11 +13,11 @@ fn main() {
     let app = Command::new("Builder Greeter")
         .author("Grant Handy <grantshandy@gmail.com>")
         .version("1.2.3")
-        .about("A builder example for clui")
-        .arg(arg!(-n --name "Your name").default_value("Joe"))
-        .arg(arg!(-g --goodbye "Say goodbye"));
+        .about("A builder example for claui")
+        .arg(arg!(--name "Your name").default_value("Joe"))
+        .arg(arg!(--goodbye "Say goodbye"));
 
-    clui::run(app, |matches| {
+    claui::run(app, |matches| {
         println!("Hello, {}!", matches.value_of("name").unwrap());
 
         if matches.is_present("goodbye") {
@@ -33,19 +37,19 @@ use clap::{CommandFactory, Parser};
     name = "Derive Greeter",
     author = "Grant Handy <grantshandy@gmail.com>",
     version = "1.2.3",
-    about = "A derive example for clui"
+    about = "A derive example for claui"
 )]
 struct Args {
-    #[clap(short, long, default_value = "Joe", help = "Your name")]
+    #[clap(long, default_value = "Joe", help = "Your name")]
     name: String,
-    #[clap(short, long, help = "Say goodbye")]
+    #[clap(long, help = "Say goodbye")]
     goodbye: bool,
 }
 
 fn main() {
     let app = Args::command();
 
-    clui::run(app, |matches| {
+    claui::run(app, |matches| {
         println!("Hello, {}!", matches.value_of("name").unwrap());
 
         if matches.is_present("goodbye") {
@@ -57,4 +61,4 @@ fn main() {
 ![derive example](./screenshots/derive.png)
 
 ## Comparison with [`klask`](https://github.com/MichalGniadek/klask)
-Klask is another GUI generator for [`clap`](https://github.com/clap-rs/clap) that uses [`egui`](https://github.com/emilk/egui), but clui and klask work in different ways. Klask runs your code by running itself as a child with an environment variable to ignore its GUI, then capturing the child stdout. Clui only runs one process; it spawns your code in another thread and then reroutes all of your stdout into a buffer through [`shh`](https://github.com/kurtlawrence/shh).
+Klask is another GUI generator for [`clap`](https://github.com/clap-rs/clap) that uses [`egui`](https://github.com/emilk/egui), but claui and klask work in different ways. Klask runs your code by running itself as a child with an environment variable to ignore its GUI, then capturing the child stdout. Claui only runs one process; it spawns your code in another thread and then reroutes all of your stdout into a buffer on each frame through [`shh`](https://github.com/kurtlawrence/shh).

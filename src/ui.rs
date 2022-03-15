@@ -6,9 +6,9 @@ use eframe::{
     epi,
 };
 
-use crate::{misc::capitalize, Clui};
+use crate::{misc::capitalize, Claui};
 
-impl epi::App for Clui {
+impl epi::App for Claui {
     fn name(&self) -> &str {
         self.app_info.name.as_str()
     }
@@ -36,7 +36,7 @@ impl epi::App for Clui {
     }
 }
 
-impl Clui {
+impl Claui {
     fn add_options(&mut self, ui: &mut Ui) {
         if self.args.len() > 0 {
             ui.separator();
