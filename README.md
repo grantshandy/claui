@@ -1,6 +1,8 @@
 # claui
 *Command Line Argument (to graphical) User Interface*
 
+**Claui will be on crates.io after [#90470](https://github.com/rust-lang/rust/issues/90470) is stabilized.**
+
 A GUI generator for [`clap`](https://github.com/clap-rs/clap) using [`egui`](https://github.com/emilk/egui).
 
 ![fizzbuzz screenshot](./screenshots/fizzbuzz.png)

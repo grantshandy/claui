@@ -59,8 +59,6 @@
 //! ## Comparison with [`klask`](https://github.com/MichalGniadek/klask)
 //! Klask is another GUI generator for [`clap`](https://github.com/clap-rs/clap) that uses [`egui`](https://github.com/emilk/egui), but claui and klask work in different ways. Klask runs your code by running itself as a child with an environment variable to ignore its GUI, then capturing the child stdout. Claui only runs one process; it spawns your code in another thread and then reroutes all of your stdout into a buffer on each frame through [`shh`](https://github.com/kurtlawrence/shh).
 
-#![feature(thread_is_running)]
-
 use std::{
     collections::HashMap,
     env,
@@ -88,7 +86,6 @@ pub fn run<F: Fn(&ArgMatches) + Send + Sync + 'static>(app: Command<'static>, fu
 }
 
 type SharedFunction = Arc<dyn Fn(&ArgMatches) + Send + Sync + 'static>;
-
 struct Claui {
     app: Box<Command<'static>>,
     app_info: AppInfo,
