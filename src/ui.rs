@@ -122,6 +122,10 @@ impl Claui {
                 self.run();
             };
 
+            if ui.add_enabled(!self.is_running, Button::new("Clear")).clicked() {
+                self.buffer = String::new();
+            }
+
             if self.is_running {
                 ui.label("Running...");
             }
