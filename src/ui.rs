@@ -1,37 +1,30 @@
-use eframe::{
-    egui::{
-        style::Margin, Button, CentralPanel, Checkbox, CollapsingHeader, Context, Frame, Grid,
-        RichText, ScrollArea, Style, TextEdit, Ui,
-    },
-    epi,
+use eframe::egui::{
+    Button, CentralPanel, Checkbox, CollapsingHeader, Context, Grid, RichText, ScrollArea,
+    TextEdit, Ui, Visuals,
 };
 
 use crate::{misc::capitalize, Claui};
 
-impl epi::App for Claui {
-    fn name(&self) -> &str {
-        self.app_info.name.as_str()
-    }
-
-    fn update(&mut self, ctx: &Context, frame: &epi::Frame) {
+impl eframe::App for Claui {
+    fn update(&mut self, ctx: &Context, frame: &mut eframe::Frame) {
         self.update_buffer();
         self.update_thread_state();
 
-        CentralPanel::default()
-            .frame(Frame::window(&Style::default()).margin(Margin::same(15.0)))
-            .show(ctx, |ui| {
-                self.add_title(ui);
-                self.add_options(ui);
-                self.add_actions_bar(ui);
-                self.add_results(ui);
-            });
+        ctx.set_visuals(Visuals::dark());
+
+        CentralPanel::default().show(ctx, |ui| {
+            self.add_title(ui);
+            self.add_options(ui);
+            self.add_actions_bar(ui);
+            self.add_results(ui);
+        });
 
         // Resize the native window to be just the size we need it to be:
         frame.set_window_size(ctx.used_size());
 
         // We do constant repainting while its running in order to show the output at correct timing.
         if self.is_running {
-            frame.request_repaint();
+            ctx.request_repaint();
         }
     }
 }

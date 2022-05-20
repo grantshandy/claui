@@ -77,11 +77,14 @@ use clap::{ArgMatches, Command};
 use misc::{AppInfo, ArgState};
 use shh::{ShhStderr, ShhStdout};
 
+pub use clap;
+
 /// Run a clap [`Command`](egui::Command) as a GUI
 pub fn run<F: Fn(&ArgMatches) + Send + Sync + 'static>(app: Command<'static>, func: F) -> ! {
     eframe::run_native(
-        Box::new(Claui::new(app, Arc::new(func))),
+        app.clone().get_name(),
         eframe::NativeOptions::default(),
+        Box::new(|_cc| Box::new(Claui::new(app, Arc::new(func)))),
     )
 }
 
