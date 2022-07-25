@@ -1,6 +1,10 @@
 # claui
 *Command Line Arguments (to graphical) User Interface*
 
+[![](https://img.shields.io/crates/v/claui.svg)](https://crates.io/crates/claui)
+[![](https://img.shields.io/docsrs/claui)](https://docs.rs/claui)
+[![](https://img.shields.io/crates/l/claui)](https://opensource.org/licenses/gpl-license)
+
 A GUI generator for [`clap`](https://github.com/clap-rs/clap) that uses [`egui`](https://github.com/emilk/egui).
 
 ![fizzbuzz screenshot](https://github.com/grantshandy/claui/blob/main/screenshots/fizzbuzz.png?raw=true)
