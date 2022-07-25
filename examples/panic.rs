@@ -1,3 +1,5 @@
+#![windows_subsystem = "windows"]
+
 use claui::clap::Command;
 
 fn main() {
