@@ -30,6 +30,7 @@ pub fn run<F: Fn(&ArgMatches) + Send + Sync + 'static>(app: Command<'static>, fu
 }
 
 type SharedFunction = Arc<dyn Fn(&ArgMatches) + Send + Sync + 'static>;
+
 struct Claui {
     app: Box<Command<'static>>,
     app_info: AppInfo,

@@ -15,5 +15,5 @@ keywords = ["gui", "clap", "builder", "generator"]
 
 [dependencies]
 clap = { version = "^3.1", features = ["derive"] }
-eframe = "^0.18.0"
-shh = "1.0.1"
+eframe = "^0.18"
+shh = "1.0"

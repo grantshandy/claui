@@ -3,7 +3,7 @@ use clap::{Arg, Command};
 #[derive(Clone, Debug, PartialEq)]
 pub struct AppInfo {
     pub name: String,
-    pub ver: Option<String>,
+    pub version: Option<String>,
     pub about: Option<String>,
     pub long_about: Option<String>,
     pub author: Option<String>,
@@ -12,26 +12,14 @@ pub struct AppInfo {
 impl AppInfo {
     pub fn new(app: &Box<Command>) -> Self {
         let name = app.get_name().to_string();
-        let ver = match app.get_version() {
-            Some(version) => Some(version.to_string()),
-            None => None,
-        };
-        let about = match app.get_about() {
-            Some(about) => Some(about.to_string()),
-            None => None,
-        };
-        let long_about = match app.get_long_about() {
-            Some(about) => Some(about.to_string()),
-            None => None,
-        };
-        let author = match app.get_author() {
-            Some(author) => Some(author.to_string()),
-            None => None,
-        };
+        let version = app.get_version().map(|x| x.to_string());
+        let about = app.get_about().map(|x| x.to_string());
+        let long_about = app.get_long_about().map(|x| x.to_string());
+        let author = app.get_author().map(|x| x.to_string());
 
         Self {
             name,
-            ver,
+            version,
             about,
             long_about,
             author,
@@ -49,13 +37,13 @@ pub struct ArgState {
 
 impl ArgState {
     pub fn new(arg: &Arg) -> Self {
-        let default_value = match arg.get_default_values().get(0) {
-            Some(s) => Some(s.to_str().unwrap().to_string()),
-            None => None,
-        };
+        let default_value = arg
+            .get_default_values()
+            .get(0)
+            .map(|x| x.to_str().unwrap().to_string());
 
         Self {
-            name: arg.get_id().to_string(),
+            name: capitalize(arg.get_id()),
             desc: arg.get_help().map(|h| h.to_string()),
             default_value,
             takes_value: arg.is_takes_value_set(),
@@ -65,8 +53,9 @@ impl ArgState {
 
 pub fn capitalize(s: &str) -> String {
     let mut c = s.chars();
+
     match c.next() {
-        None => String::new(),
         Some(f) => f.to_uppercase().to_string() + c.as_str(),
+        None => String::new(),
     }
 }

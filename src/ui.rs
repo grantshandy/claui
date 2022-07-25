@@ -3,7 +3,7 @@ use eframe::egui::{
     TextEdit, Ui, Visuals,
 };
 
-use crate::{misc::capitalize, Claui};
+use crate::Claui;
 
 impl eframe::App for Claui {
     fn update(&mut self, ctx: &Context, frame: &mut eframe::Frame) {
@@ -30,6 +30,42 @@ impl eframe::App for Claui {
 }
 
 impl Claui {
+    fn add_title(&mut self, ui: &mut Ui) {
+        ui.horizontal(|ui| {
+            ui.heading(&self.app_info.name);
+            if let Some(version) = &self.app_info.version {
+                ui.label(RichText::new(version));
+            }
+        });
+
+        if let Some(about) = &self.app_info.about {
+            ui.label(about);
+        }
+
+        if self.app_info.long_about.is_some()
+            || self.app_info.author.is_some()
+            || self.app_info.version.is_some()
+        {
+            CollapsingHeader::new("Info").show(ui, |ui| {
+                if let Some(long_about) = &self.app_info.long_about {
+                    ui.label(format!("Description: {}", long_about));
+                    ui.add_space(3.0);
+                }
+
+                if let Some(author) = &self.app_info.author {
+                    ui.label(format!("Author: {}", author));
+                    ui.add_space(3.0);
+                }
+
+                if let Some(version) = &self.app_info.version {
+                    ui.label(format!("Version: {}", version));
+                }
+            });
+        }
+
+        ui.add_space(4.5);
+    }
+
     fn add_options(&mut self, ui: &mut Ui) {
         if self.args.len() > 0 {
             ui.separator();
@@ -45,7 +81,7 @@ impl Claui {
                     ui.end_row();
 
                     for arg in self.args.iter() {
-                        ui.label(capitalize(&arg.name));
+                        ui.label(&arg.name);
 
                         if arg.takes_value {
                             ui.add_enabled(
@@ -77,42 +113,6 @@ impl Claui {
         }
     }
 
-    fn add_title(&mut self, ui: &mut Ui) {
-        ui.horizontal(|ui| {
-            ui.heading(&self.app_info.name);
-            if let Some(version) = &self.app_info.ver {
-                ui.label(RichText::new(version));
-            }
-        });
-
-        if let Some(about) = &self.app_info.about {
-            ui.label(about);
-        }
-
-        if self.app_info.long_about.is_some()
-            || self.app_info.author.is_some()
-            || self.app_info.ver.is_some()
-        {
-            CollapsingHeader::new("Info").show(ui, |ui| {
-                if let Some(long_about) = &self.app_info.long_about {
-                    ui.label(format!("Description: {}", long_about));
-                    ui.add_space(3.0);
-                }
-
-                if let Some(author) = &self.app_info.author {
-                    ui.label(format!("Author: {}", author));
-                    ui.add_space(3.0);
-                }
-
-                if let Some(version) = &self.app_info.ver {
-                    ui.label(format!("Version: {}", version));
-                }
-            });
-        }
-
-        ui.add_space(4.5);
-    }
-
     fn add_actions_bar(&mut self, ui: &mut Ui) {
         ui.horizontal(|ui| {
             if ui
@@ -122,7 +122,10 @@ impl Claui {
                 self.run();
             };
 
-            if ui.add_enabled(!self.is_running, Button::new("Clear")).clicked() {
+            if ui
+                .add_enabled(!self.is_running, Button::new("Clear"))
+                .clicked()
+            {
                 self.buffer = String::new();
             }
 
@@ -143,7 +146,7 @@ impl Claui {
                     TextEdit::multiline(&mut self.buffer.as_str())
                         .code_editor()
                         .cursor_at_end(true),
-                );
+                )
             });
     }
 }
