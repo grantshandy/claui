@@ -22,9 +22,9 @@ fn main() {
         .arg(arg!(--goodbye "Say goodbye"));
 
     claui::run(app, |matches| {
-        println!("Hello, {}!", matches.value_of("name").unwrap());
+        println!("Hello, {}!", matches.get_one::<String>("name").unwrap());
 
-        if matches.is_present("goodbye") {
+        if matches.get_flag("goodbye") {
             println!("Goodbye!");
         }
     });
@@ -54,9 +54,9 @@ fn main() {
     let app = Args::command();
 
     claui::run(app, |matches| {
-        println!("Hello, {}!", matches.value_of("name").unwrap());
+        println!("Hello, {}!", matches.get_one::<String>("name").unwrap());
 
-        if matches.is_present("goodbye") {
+        if matches.get_flag("goodbye") {
             println!("Goodbye!");
         }
     });

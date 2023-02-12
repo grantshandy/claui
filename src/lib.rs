@@ -21,7 +21,7 @@ use shh::{ShhStderr, ShhStdout};
 pub use clap;
 
 /// Run a clap [`Command`] as a GUI
-pub fn run<F: Fn(&ArgMatches) + Send + Sync + 'static>(app: Command<'static>, func: F) -> ! {
+pub fn run<F: Fn(&ArgMatches) + Send + Sync + 'static>(app: Command, func: F) -> ! {
     eframe::run_native(
         app.clone().get_name(),
         eframe::NativeOptions::default(),
@@ -32,7 +32,7 @@ pub fn run<F: Fn(&ArgMatches) + Send + Sync + 'static>(app: Command<'static>, fu
 type SharedFunction = Arc<dyn Fn(&ArgMatches) + Send + Sync + 'static>;
 
 struct Claui {
-    app: Box<Command<'static>>,
+    app: Box<Command>,
     app_info: AppInfo,
     shh: (ShhStdout, ShhStderr),
     buffer: String,
@@ -44,13 +44,13 @@ struct Claui {
 }
 
 impl Claui {
-    pub fn new(app: Command<'static>, func: SharedFunction) -> Self {
+    pub fn new(app: Command, func: SharedFunction) -> Self {
         let app = Box::new(app);
         let app_info = AppInfo::new(&app);
 
         let mut args = Vec::new();
         for arg in app.get_arguments() {
-            match arg.get_id() {
+            match arg.get_id().as_str() {
                 "version" => (),
                 "help" => (),
                 _ => args.push(ArgState::new(arg)),

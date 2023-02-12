@@ -30,6 +30,7 @@ impl AppInfo {
 #[derive(Clone, Debug, PartialEq)]
 pub struct ArgState {
     pub name: String,
+    pub display_name: String,
     pub desc: Option<String>,
     pub default_value: Option<String>,
     pub takes_value: bool,
@@ -43,10 +44,11 @@ impl ArgState {
             .map(|x| x.to_str().unwrap().to_string());
 
         Self {
-            name: capitalize(arg.get_id()),
+            name: arg.get_id().to_string(),
+            display_name: capitalize(arg.get_id().as_str()),
             desc: arg.get_help().map(|h| h.to_string()),
             default_value,
-            takes_value: arg.is_takes_value_set(),
+            takes_value: arg.get_action().takes_values(),
         }
     }
 }

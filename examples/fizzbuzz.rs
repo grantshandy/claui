@@ -47,15 +47,15 @@ fn main() {
 }
 
 fn run(matches: &ArgMatches) {
-    let number: usize = matches.value_of_t("number").unwrap();
+    let number: usize = *matches.get_one("number").unwrap();
 
-    let fizz_num: usize = matches.value_of_t("fizz").unwrap();
-    let buzz_num: usize = matches.value_of_t("buzz").unwrap();
+    let fizz_num: usize = *matches.get_one("fizz").unwrap();
+    let buzz_num: usize = *matches.get_one("buzz").unwrap();
 
     for num in 1..(number + 1) {
         let mut output = String::new();
 
-        if matches.is_present("verbose") {
+        if matches.contains_id("verbose") {
             output += format!("{num}: ").as_str();
         }
 
@@ -77,6 +77,6 @@ fn run(matches: &ArgMatches) {
             println!("{num}");
         }
 
-        thread::sleep(Duration::from_millis(matches.value_of_t("gap").unwrap()));
+        thread::sleep(Duration::from_millis(*matches.get_one("gap").unwrap()));
     }
 }
