@@ -10,7 +10,7 @@ pub struct AppInfo {
 }
 
 impl AppInfo {
-    pub fn new(app: &Box<Command>) -> Self {
+    pub fn new(app: &Command) -> Self {
         let name = app.get_name().to_string();
         let version = app.get_version().map(|x| x.to_string());
         let about = app.get_about().map(|x| x.to_string());

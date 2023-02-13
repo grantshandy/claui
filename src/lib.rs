@@ -21,7 +21,10 @@ use shh::{ShhStderr, ShhStdout};
 pub use clap;
 
 /// Run a clap [`Command`] as a GUI
-pub fn run<F: Fn(&ArgMatches) + Send + Sync + 'static>(app: Command, func: F) -> ! {
+pub fn run<F: Fn(&ArgMatches) + Send + Sync + 'static>(
+    app: Command,
+    func: F,
+) -> Result<(), eframe::Error> {
     eframe::run_native(
         app.clone().get_name(),
         eframe::NativeOptions::default(),
@@ -31,6 +34,9 @@ pub fn run<F: Fn(&ArgMatches) + Send + Sync + 'static>(app: Command, func: F) ->
 
 type SharedFunction = Arc<dyn Fn(&ArgMatches) + Send + Sync + 'static>;
 
+type SharedFunctionSender = Sender<(SharedFunction, ArgMatches)>;
+type SharedFunctionReceiver = Receiver<(SharedFunction, ArgMatches)>;
+
 struct Claui {
     app: Box<Command>,
     app_info: AppInfo,
@@ -38,7 +44,6 @@ struct Claui {
     buffer: String,
     func: SharedFunction,
     func_handle: Option<Arc<JoinHandle<()>>>,
-    is_running: bool,
     args: Vec<ArgState>,
     ui_arg_state: HashMap<String, (bool, String)>,
 }
@@ -69,7 +74,6 @@ impl Claui {
             buffer: String::new(),
             func,
             func_handle: None,
-            is_running: false,
             args,
             ui_arg_state,
         }
@@ -83,30 +87,26 @@ impl Claui {
     fn run(&mut self) {
         self.buffer.clear();
 
-        let (sender, receiver): (
-            Sender<(SharedFunction, ArgMatches)>,
-            Receiver<(SharedFunction, ArgMatches)>,
-        ) = mpsc::channel();
+        let (sender, receiver): (SharedFunctionSender, SharedFunctionReceiver) = mpsc::channel();
 
         let matches = match self.app.clone().try_get_matches_from(self.get_arg_output()) {
             Ok(res) => res,
             Err(err) => {
-                eprintln!("{}", err);
+                eprintln!("{err}");
                 return;
             }
         };
 
-        let func_handle = thread::Builder::new()
-            .name(String::from("claui child"))
-            .spawn(move || {
-                let (func, matches) = receiver.recv().unwrap();
+        self.func_handle = Some(Arc::new(
+            thread::Builder::new()
+                .name(String::from("claui child"))
+                .spawn(move || {
+                    let (func, matches) = receiver.recv().unwrap();
 
-                func(&matches);
-            })
-            .unwrap();
-
-        self.func_handle = Some(Arc::new(func_handle));
-        self.is_running = true;
+                    func(&matches);
+                })
+                .unwrap(),
+        ));
 
         sender.send((Arc::clone(&self.func), matches)).unwrap();
     }
@@ -131,14 +131,12 @@ impl Claui {
                     .unwrap()
                     .1
                     .to_owned();
-                if value != "" {
+                if !value.is_empty() {
                     res.push(format!("--{}", arg.name));
                     res.push(value);
                 }
-            } else {
-                if self.ui_arg_state.get(&arg.name.clone()).unwrap().0 {
-                    res.push(format!("--{}", arg.name));
-                }
+            } else if self.ui_arg_state.get(&arg.name.clone()).unwrap().0 {
+                res.push(format!("--{}", arg.name));
             }
         }
 
@@ -149,7 +147,6 @@ impl Claui {
         if let Some(func_handle) = &self.func_handle {
             if func_handle.is_finished() {
                 self.func_handle = None;
-                self.is_running = false;
             }
         }
     }

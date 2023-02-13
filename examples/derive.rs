@@ -25,5 +25,6 @@ fn main() {
         if matches.get_flag("goodbye") {
             println!("Goodbye!");
         }
-    });
+    })
+    .unwrap();
 }

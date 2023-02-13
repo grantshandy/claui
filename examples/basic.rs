@@ -7,5 +7,6 @@ fn main() {
 
     claui::run(app, |_| {
         println!("Hello, World!");
-    });
+    })
+    .unwrap();
 }

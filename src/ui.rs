@@ -6,7 +6,7 @@ use eframe::egui::{
 use crate::Claui;
 
 impl eframe::App for Claui {
-    fn update(&mut self, ctx: &Context, frame: &mut eframe::Frame) {
+    fn update(&mut self, ctx: &Context, _frame: &mut eframe::Frame) {
         self.update_buffer();
         self.update_thread_state();
 
@@ -19,11 +19,8 @@ impl eframe::App for Claui {
             self.add_results(ui);
         });
 
-        // Resize the native window to be just the size we need it to be:
-        frame.set_window_size(ctx.used_size());
-
         // We do constant repainting while its running in order to show the output at correct timing.
-        if self.is_running {
+        if self.func_handle.is_some() {
             ctx.request_repaint();
         }
     }
@@ -48,17 +45,17 @@ impl Claui {
         {
             CollapsingHeader::new("Info").show(ui, |ui| {
                 if let Some(long_about) = &self.app_info.long_about {
-                    ui.label(format!("Description: {}", long_about));
+                    ui.label(format!("Description: {long_about}"));
                     ui.add_space(3.0);
                 }
 
                 if let Some(author) = &self.app_info.author {
-                    ui.label(format!("Author: {}", author));
+                    ui.label(format!("Author: {author}"));
                     ui.add_space(3.0);
                 }
 
                 if let Some(version) = &self.app_info.version {
-                    ui.label(format!("Version: {}", version));
+                    ui.label(format!("Version: {version}"));
                 }
             });
         }
@@ -67,12 +64,12 @@ impl Claui {
     }
 
     fn add_options(&mut self, ui: &mut Ui) {
-        if self.args.len() > 0 {
+        if !self.args.is_empty() {
             ui.separator();
 
             Grid::new("options")
                 .num_columns(3)
-                .min_col_width(ui.available_width() / 4.0)
+                .min_col_width(ui.available_width() / 3.0)
                 .striped(true)
                 .show(ui, |ui| {
                     ui.label("Key");
@@ -85,7 +82,7 @@ impl Claui {
 
                         if arg.takes_value {
                             ui.add_enabled(
-                                !self.is_running,
+                                self.func_handle.is_none(),
                                 TextEdit::singleline(
                                     &mut self.ui_arg_state.get_mut(&arg.name.clone()).unwrap().1,
                                 )
@@ -93,7 +90,7 @@ impl Claui {
                             );
                         } else {
                             ui.add_enabled(
-                                !self.is_running,
+                                self.func_handle.is_none(),
                                 Checkbox::new(
                                     &mut self.ui_arg_state.get_mut(&arg.name.clone()).unwrap().0,
                                     "",
@@ -116,20 +113,20 @@ impl Claui {
     fn add_actions_bar(&mut self, ui: &mut Ui) {
         ui.horizontal(|ui| {
             if ui
-                .add_enabled(!self.is_running, Button::new("Run"))
+                .add_enabled(self.func_handle.is_none(), Button::new("Run"))
                 .clicked()
             {
                 self.run();
             };
 
             if ui
-                .add_enabled(!self.is_running, Button::new("Clear"))
+                .add_enabled(self.func_handle.is_none(), Button::new("Clear"))
                 .clicked()
             {
                 self.buffer = String::new();
             }
 
-            if self.is_running {
+            if self.func_handle.is_some() {
                 ui.label("Running...");
             }
         });
@@ -139,7 +136,7 @@ impl Claui {
         ui.separator();
 
         ScrollArea::new([true, true])
-            .stick_to_bottom()
+            .stick_to_bottom(true)
             .show(ui, |ui| {
                 ui.add_sized(
                     ui.available_size(),

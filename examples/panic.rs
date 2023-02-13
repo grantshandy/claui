@@ -7,5 +7,6 @@ fn main() {
 
     claui::run(command, |_| {
         panic!("This is a panic message.");
-    });
+    })
+    .unwrap();
 }

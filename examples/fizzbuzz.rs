@@ -35,7 +35,7 @@ struct Args {
         default_value = "100",
         help = "Milisecond gap between printing numbers"
     )]
-    gap: usize,
+    gap: u64,
     #[clap(short, long, help = "Print all lines with their number")]
     verbose: bool,
 }
@@ -43,19 +43,21 @@ struct Args {
 fn main() {
     let app = Args::command();
 
-    claui::run(app, run);
+    claui::run(app, run).unwrap();
 }
 
 fn run(matches: &ArgMatches) {
     let number: usize = *matches.get_one("number").unwrap();
-
     let fizz_num: usize = *matches.get_one("fizz").unwrap();
     let buzz_num: usize = *matches.get_one("buzz").unwrap();
+    let gap: u64 = *matches.get_one("gap").unwrap();
+
+    let verbose: bool = matches.get_flag("verbose");
 
     for num in 1..(number + 1) {
         let mut output = String::new();
 
-        if matches.contains_id("verbose") {
+        if verbose {
             output += format!("{num}: ").as_str();
         }
 
@@ -67,7 +69,7 @@ fn run(matches: &ArgMatches) {
             output += "Buzz";
         }
 
-        if output == format!("{num}: ") {
+        if num % fizz_num != 0 && num % buzz_num != 0 {
             output += num.to_string().as_str();
         }
 
@@ -77,6 +79,6 @@ fn run(matches: &ArgMatches) {
             println!("{num}");
         }
 
-        thread::sleep(Duration::from_millis(*matches.get_one("gap").unwrap()));
+        thread::sleep(Duration::from_millis(gap));
     }
 }
