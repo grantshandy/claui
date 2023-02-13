@@ -81,7 +81,7 @@ impl Claui {
                     ui.end_row();
 
                     for arg in self.args.iter() {
-                        ui.label(&arg.name);
+                        ui.label(&arg.display_name);
 
                         if arg.takes_value {
                             ui.add_enabled(
