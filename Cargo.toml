@@ -1,6 +1,6 @@
 [package]
 name = "claui"
-version = "0.2.0"
+version = "0.3.0"
 edition = "2021"
 authors = ["Grant Handy <granthandy@proton.me>"]
 description = "A GUI generator for clap using egui."
@@ -15,5 +15,5 @@ keywords = ["gui", "clap", "builder", "generator"]
 
 [dependencies]
 clap = { version = "4", features = ["derive"] }
-eframe = "0.21"
+eframe = "0.26"
 shh = "1.0"
