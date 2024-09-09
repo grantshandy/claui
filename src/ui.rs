@@ -1,12 +1,18 @@
+use eframe::egui;
 use eframe::egui::{
     Button, CentralPanel, Checkbox, CollapsingHeader, Context, Grid, RichText, ScrollArea,
     TextEdit, Ui, Visuals,
 };
 
+
 use crate::Claui;
 
 impl eframe::App for Claui {
     fn update(&mut self, ctx: &Context, _frame: &mut eframe::Frame) {
+        if self.font_config.is_some() && !self.font_loaded {
+            self.load_font(ctx);
+            self.font_loaded = true;
+        }
         self.update_buffer();
         self.update_thread_state();
 
@@ -145,5 +151,23 @@ impl Claui {
                         .cursor_at_end(true),
                 )
             });
+    }
+    pub fn load_font(&self, ctx: &Context) {
+        if let Some(font_config) = self.font_config.clone() {
+            let ref font_path = font_config.font_file;
+            if let Ok(font_data) = std::fs::read(font_path) {
+                let mut fonts = egui::FontDefinitions::default();
+                fonts.font_data.insert(
+                    "custom_font".to_owned(),
+                    egui::FontData::from_owned(font_data),
+                );
+                fonts.families.get_mut(&egui::FontFamily::Proportional).unwrap().insert(0, "custom_font".to_owned());
+                fonts.families.get_mut(&egui::FontFamily::Monospace).unwrap().insert(0, "custom_font".to_owned());
+                ctx.set_fonts(fonts);
+            } else {
+                eprintln!("Failed to load font file: {}", font_path);
+            }
+        }
+
     }
 }

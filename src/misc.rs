@@ -52,6 +52,11 @@ impl ArgState {
         }
     }
 }
+#[derive(Clone, Debug, PartialEq)]
+pub struct FontConfig {
+    pub font_file: String,
+}
+
 
 pub fn capitalize(s: &str) -> String {
     let mut c = s.chars();

@@ -19,16 +19,18 @@ use misc::{AppInfo, ArgState};
 use shh::{ShhStderr, ShhStdout};
 
 pub use clap;
+pub use misc::FontConfig;
 
 /// Run a clap [`Command`] as a GUI
 pub fn run<F: Fn(&ArgMatches) + Send + Sync + 'static>(
     app: Command,
     func: F,
+    font_config: Option<FontConfig>
 ) -> Result<(), eframe::Error> {
     eframe::run_native(
         app.clone().get_name(),
         eframe::NativeOptions::default(),
-        Box::new(|_cc| Box::new(Claui::new(app, Arc::new(func)))),
+        Box::new(|_cc| Box::new(Claui::new(app, Arc::new(func),font_config))),
     )
 }
 
@@ -46,10 +48,12 @@ struct Claui {
     func_handle: Option<Arc<JoinHandle<()>>>,
     args: Vec<ArgState>,
     ui_arg_state: HashMap<String, (bool, String)>,
+    font_config: Option<FontConfig>,
+    font_loaded: bool,
 }
 
 impl Claui {
-    pub fn new(app: Command, func: SharedFunction) -> Self {
+    pub fn new(app: Command, func: SharedFunction,font_config: Option<FontConfig>) -> Self {
         let app = Box::new(app);
         let app_info = AppInfo::new(&app);
 
@@ -76,6 +80,8 @@ impl Claui {
             func_handle: None,
             args,
             ui_arg_state,
+            font_config,
+            font_loaded: false,
         }
     }
 
