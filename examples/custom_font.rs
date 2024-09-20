@@ -1,10 +1,10 @@
 #![windows_subsystem = "windows"]
 
 use clap::Command;
-use eframe::{NativeOptions, egui};
-
-// change the filename to whatever is needed
-const FONT_BYTES: &[u8] = include_bytes!("方正黑体简体.ttf");
+use eframe::{
+    egui::{FontData, FontDefinitions, FontFamily},
+    NativeOptions,
+};
 
 fn main() {
     let app = Command::new("Custom Font Tester");
@@ -13,17 +13,22 @@ fn main() {
         app,
         NativeOptions::default(),
         |cc| {
-            let mut fonts = egui::FontDefinitions::default();
-            fonts.font_data.insert(
-                "custom_font".to_owned(),
-                egui::FontData::from_static(FONT_BYTES),
-            );
-            fonts.families.get_mut(&egui::FontFamily::Proportional).unwrap().insert(0, "custom_font".to_owned());
-            fonts.families.get_mut(&egui::FontFamily::Monospace).unwrap().insert(0, "custom_font".to_owned());
+            let mut fonts = FontDefinitions::default();
+
+            // change font names to whatever is needed
+            fonts
+                .font_data
+                .insert("方正黑体简体".into(), FontData::from_static(include_bytes!("方正黑体简体.ttf")));
+            fonts
+                .families
+                .get_mut(&FontFamily::Monospace)
+                .unwrap()
+                .insert(0, "方正黑体简体".into());
+
             cc.egui_ctx.set_fonts(fonts);
         },
         |_| {
-            println!("你好世界");
+            println!("方正黑体简体");
         },
     )
     .unwrap();

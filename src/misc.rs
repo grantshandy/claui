@@ -11,18 +11,12 @@ pub struct AppInfo {
 
 impl AppInfo {
     pub fn new(app: &Command) -> Self {
-        let name = app.get_name().to_string();
-        let version = app.get_version().map(|x| x.to_string());
-        let about = app.get_about().map(|x| x.to_string());
-        let long_about = app.get_long_about().map(|x| x.to_string());
-        let author = app.get_author().map(|x| x.to_string());
-
         Self {
-            name,
-            version,
-            about,
-            long_about,
-            author,
+            name: app.get_name().into(),
+            version: app.get_version().map(|x| x.into()),
+            about: app.get_about().map(|x| x.to_string()),
+            long_about: app.get_long_about().map(|x| x.to_string()),
+            author: app.get_author().map(|x| x.to_string()),
         }
     }
 }
@@ -40,7 +34,7 @@ impl ArgState {
     pub fn new(arg: &Arg) -> Self {
         let default_value = arg
             .get_default_values()
-            .get(0)
+            .first()
             .map(|x| x.to_str().unwrap().to_string());
 
         Self {
