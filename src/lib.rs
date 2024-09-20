@@ -15,20 +15,36 @@ mod misc;
 mod ui;
 
 use clap::{ArgMatches, Command};
+use eframe::{CreationContext, NativeOptions};
 use misc::{AppInfo, ArgState};
 use shh::{ShhStderr, ShhStdout};
 
 pub use clap;
+pub use eframe;
 
 /// Run a clap [`Command`] as a GUI
-pub fn run<F: Fn(&ArgMatches) + Send + Sync + 'static>(
+pub fn run(
     app: Command,
-    func: F,
+    on_run: impl Fn(&ArgMatches) + Send + Sync + 'static,
+) -> Result<(), eframe::Error> {
+    run_setup(app, NativeOptions::default(), |_| {}, on_run)
+}
+
+/// Run a clap [`Command`] as a GUI and modify the GUI context on start.
+pub fn run_setup(
+    app: Command,
+    eframe_options: NativeOptions,
+    setup: impl FnOnce(&CreationContext<'_>) + Send + Sync + 'static,
+    on_run: impl Fn(&ArgMatches) + Send + Sync + 'static,
 ) -> Result<(), eframe::Error> {
     eframe::run_native(
         app.clone().get_name(),
-        eframe::NativeOptions::default(),
-        Box::new(|_cc| Box::new(Claui::new(app, Arc::new(func)))),
+        eframe_options,
+        Box::new(|cc| {
+            setup(cc);
+
+            Ok(Box::new(Claui::new(app, Arc::new(on_run))))
+        }),
     )
 }
 
